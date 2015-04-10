@@ -1,50 +1,60 @@
 /**
- * Created by Emmanuel Beloin & Shaun Cooper on 2015-04-09.
+ * Created by Emmanuel Beloin & Shaun Cooper on 10/04/15 at 00:30 :D
  */
+
 import java.io.*;
-import java.net.*;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.UnknownHostException;
 
 public class EnregistreurPageWeb {
-    Socket monSocket;
 
-    public void Enregistrer(String adresseWeb, String nom)
-    {
-        String ligne = new String();
-        try
-        {
-            monSocket = new Socket(InetAddress.getByName(adresseWeb), 80);
-            PrintWriter writer = new  PrintWriter( new OutputStreamWriter(monSocket.getOutputStream()));
-            BufferedReader reader = new BufferedReader(new InputStreamReader(monSocket.getInputStream()));
-            PrintWriter ecritureFichier = new PrintWriter(new BufferedWriter( new FileWriter( nom) ) );
-            // Affichage de l'entête
-            writer.println("GET / HTTP/1.1");
-            writer.println("Host: " + adresseWeb);
-            writer.println("");
-            writer.flush();
+    private void sendGet(String adresse, String fichierDeSorti){
 
-            // Ici on lit / écrit chaque ligne jusqu'à la dernière
-            while((ligne = reader.readLine())!= null)
-                ecritureFichier.println(ligne);
+        try {
+            PrintWriter ecritureFichier = new PrintWriter(new BufferedWriter(new FileWriter(fichierDeSorti)));
+
+            URL obj = new URL(adresse);
+            HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+
+            BufferedReader in = new BufferedReader(
+                    new InputStreamReader(con.getInputStream()));
+            String inputLine;
+            StringBuffer response = new StringBuffer();
+
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+                ecritureFichier.println(response.toString());
+                response.delete(0, response.length());
+            }
+            in.close();
             ecritureFichier.close();
         }
         catch(UnknownHostException uhe)
         {
-            System.err.println("Erreur: Le site web ne répond pas / n'existe pas");
-            uhe.printStackTrace();
+            System.err.println("Erreur: Site web inconnu / mal écrit!");
+            System.exit(-1);
+        }
+        catch(MalformedURLException mue)
+        {
+            System.err.println("Erreur: Site de syntaxe de l'url!");
+            System.exit(-2);
         }
         catch(IOException ioe)
         {
-
+            System.err.println("Erreur: Fichier introuvable!");
         }
     }
-    public static void main(String[] args)
-    {
-        EnregistreurPageWeb lespion = new EnregistreurPageWeb();
-        // Si l'utilisateur ne fourni pas de nom de fichier
-        // on met le output dans un fichier par défaut (page.html)
-        if(args.length == 1)
-            lespion.Enregistrer(args[0],"page.html");
+
+    public static void main(String[] args) throws Exception {
+        EnregistreurPageWeb http = new EnregistreurPageWeb();
+
+        if (args.length == 1)
+            http.sendGet(args[0], "page.html");
+        else if(args.length == 2)
+            http.sendGet(args[0], args[1]);
         else
-            lespion.Enregistrer(args[0],args[1]);
+            System.err.println("Veuiller entrer au moins l'adresse du site! Bin kin!");
     }
 }
